@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openscad-web
+  annotations:
+    # ingress-nginx: allow large sources and long renders.
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    # Basic abuse protection per client IP.
+    nginx.ingress.kubernetes.io/limit-rpm: "120"
+    # cert-manager.io/cluster-issuer: letsencrypt   # uncomment if you use cert-manager
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: openscad.example.com   # change me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openscad-web
+                port:
+                  name: http
+  # tls:
+  #   - hosts: [openscad.example.com]
+  #     secretName: openscad-web-tls

@@ -1,0 +1,13 @@
+# Used by BuildKit for: docker build -f web/Dockerfile .
+.git
+**/.git
+build*/
+tests/
+releases/
+snap/
+xcode/
+winconsole/
+**/node_modules
+**/__pycache__
+web/deploy/
+submodules/manifold/test/

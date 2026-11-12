@@ -1,0 +1,38 @@
+# Local clusters (kind / minikube / k3d / Docker Desktop):
+#   kubectl apply -k web/deploy/k8s/overlays/local
+#   kubectl -n openscad port-forward svc/openscad-web 8080:80
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: openscad-web
+    newName: openscad-web
+    newTag: latest
+patches:
+  # Smaller footprint, no autoscaler, no ingress.
+  - target: { kind: Deployment, name: openscad-web }
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/imagePullPolicy
+        value: Never
+  - target: { kind: HorizontalPodAutoscaler, name: openscad-web }
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: openscad-web
+  - target: { kind: Ingress, name: openscad-web }
+    patch: |-
+      $patch: delete
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: openscad-web

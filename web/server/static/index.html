@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSCAD Web</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">OpenSCAD <span>Web</span></div>
+    <div class="group">
+      <button id="btn-render" class="primary" title="Render (F6 / Ctrl+Enter)">▶ Render</button>
+      <label class="check" title="Re-render automatically when the code or parameters change">
+        <input type="checkbox" id="auto-render"> Auto
+      </label>
+    </div>
+    <div class="group">
+      <select id="examples" title="Load an example"><option value="">Examples…</option></select>
+      <button id="btn-open" title="Open a .scad file">Open</button>
+      <button id="btn-save" title="Save the source as .scad">Save .scad</button>
+      <input type="file" id="file-input" accept=".scad,text/plain" hidden>
+    </div>
+    <div class="group">
+      <select id="export-format" title="Export format">
+        <option value="stl">STL</option>
+        <option value="3mf">3MF</option>
+        <option value="obj">OBJ</option>
+        <option value="off">OFF</option>
+        <option value="amf">AMF</option>
+        <option value="wrl">VRML</option>
+        <option value="svg">SVG (2D)</option>
+        <option value="dxf">DXF (2D)</option>
+        <option value="pdf">PDF (2D)</option>
+        <option value="png">PNG image</option>
+        <option value="csg">CSG tree</option>
+      </select>
+      <button id="btn-export">Export</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="status" id="status">Ready</div>
+  </header>
+
+  <main class="layout">
+    <section class="pane editor-pane">
+      <div class="editor-wrap">
+        <pre class="gutter" id="gutter" aria-hidden="true">1</pre>
+        <textarea id="editor" spellcheck="false" autocapitalize="off" autocomplete="off"
+                  aria-label="OpenSCAD source"></textarea>
+      </div>
+    </section>
+
+    <section class="pane viewer-pane">
+      <div id="viewer"></div>
+      <img id="image-view" alt="2D output" hidden>
+      <div class="viewer-tools">
+        <button id="btn-reset-view" title="Reset view">⟲ View</button>
+        <label class="check"><input type="checkbox" id="show-grid" checked> Grid</label>
+        <label class="check"><input type="checkbox" id="show-edges"> Edges</label>
+      </div>
+      <div class="viewer-empty" id="viewer-empty"><span>Press <kbd>F6</kbd> to render</span></div>
+    </section>
+
+    <aside class="pane side-pane">
+      <details open>
+        <summary>Customizer</summary>
+        <div id="customizer" class="customizer">
+          <p class="muted">Parameters declared at the top of the file appear here.</p>
+        </div>
+      </details>
+      <details open class="console-box">
+        <summary>Console</summary>
+        <pre id="console" class="console"></pre>
+      </details>
+    </aside>
+  </main>
+
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>

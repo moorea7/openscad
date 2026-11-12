@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openscad-web
+data:
+  # Keep MAX_CONCURRENT_RENDERS roughly equal to the pod's CPU request:
+  # each render is a single openscad process that mostly uses one core.
+  MAX_CONCURRENT_RENDERS: "2"
+  # How long a request may wait for a free render slot before a 503.
+  QUEUE_TIMEOUT_SECONDS: "15"
+  # Hard per-render wall-clock limit. Keep the ingress read timeout and
+  # terminationGracePeriodSeconds above this.
+  RENDER_TIMEOUT_SECONDS: "60"
+  MAX_SOURCE_BYTES: "524288"
+  MAX_OUTPUT_BYTES: "67108864"
+  MAX_IMAGE_PIXELS: "2048"
+  # manifold is much faster than cgal for most models.
+  OPENSCAD_BACKEND: "manifold"
+  LOG_LEVEL: "INFO"
