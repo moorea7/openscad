@@ -53,6 +53,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: openscad-web
+            # Optional: MCP_AUTH_TOKEN requires "Authorization: Bearer <token>" on /mcp.
+            #   kubectl -n openscad create secret generic openscad-web-mcp \
+            #     --from-literal=MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
+            - secretRef:
+                name: openscad-web-mcp
+                optional: true
           env:
             - name: WORK_DIR
               value: /tmp

@@ -32,7 +32,9 @@ web/
 ├── Dockerfile                 # multi-stage: compile openscad → vendor three.js → slim runtime
 ├── Dockerfile.dockerignore
 ├── server/
-│   ├── app.py                 # FastAPI service
+│   ├── engine.py              # render engine: runs openscad safely (shared)
+│   ├── app.py                 # HTTP API + web UI
+│   ├── mcp_server.py          # MCP server mounted at /mcp
 │   ├── requirements.txt
 │   └── static/                # index.html, app.js, style.css
 └── deploy/k8s/
@@ -118,6 +120,9 @@ All settings are environment variables, provided through the ConfigMap:
 | `OPENSCAD_BACKEND` | manifold | `manifold` (fast) or `cgal` |
 | `OPENSCADPATH` | – | Extra library search path. Mount a volume of `.scad` libraries and point this at it |
 | `LOG_LEVEL` | INFO | JSON logs to stdout |
+| `MCP_ENABLED` | true | Serve the MCP endpoint at `/mcp` |
+| `MCP_AUTH_TOKEN` | – | Require this bearer token on `/mcp` (from a Secret) |
+| `MCP_ALLOWED_HOSTS` | – | Comma-separated Host values allowed on `/mcp` |
 
 When you change `RENDER_TIMEOUT_SECONDS`, keep the ingress `proxy-read-timeout`
 and the pod's `terminationGracePeriodSeconds` above it.
@@ -127,6 +132,7 @@ and the pod's `terminationGracePeriodSeconds` above it.
 | Method & path | Description |
 |---|---|
 | `POST /api/render` | `{"source": "...", "format": "stl", "parameters": {"width": 40}}` → `{ok, log, seconds, mime, filename, data (base64)}`. Formats: `stl asciistl 3mf off obj amf wrl svg dxf pdf png csg echo`. PNG also takes `image_width`, `image_height`, `render`, `colorscheme`. Returns `504` on timeout and `503` when the pod is saturated |
+| `POST /api/views` | `{"source": "...", "views": ["iso","top"], "mode": "preview"}` → PNG images per view (same options as the MCP `render_views` tool) |
 | `POST /api/parameters` | `{"source": "..."}` → Customizer parameter definitions (OpenSCAD's `param` export) |
 | `GET /api/info` | Version, formats, limits |
 | `GET /api/examples[/{category}/{file}]` | Bundled examples |
@@ -142,6 +148,62 @@ curl -s localhost:8080/api/render -H 'content-type: application/json' \
 Customizer values are passed to openscad as `-D name=value`. They are encoded
 strictly as numbers, booleans, strings or vectors, so a parameter can't inject
 code.
+
+## MCP server
+
+The same pods serve an MCP server at **`/mcp`** (Streamable HTTP, stateless,
+JSON responses), so an AI client can send OpenSCAD code to the engine and get
+back images it can look at, files, and a geometry report.
+
+| Tool | Returns |
+|---|---|
+| `render_views` | PNG images from named views (`iso`, `front`, `back`, `left`, `right`, `top`, `bottom`) or an explicit `camera`. `mode` is `preview` (fast OpenCSG; shows `color()` and the `#`/`%` modifiers) or `render` (final geometry). Also takes `colorscheme`, `projection` (`auto` gives orthographic for axis views), overlays `show: ["axes","scales","edges"]`, and size |
+| `analyze_model` | Compiles to final geometry. Reports `ok`, bounding box (mm), facets, vertices, `echo()` output, warnings and errors. Cheap, so use it to iterate |
+| `export_model` | The model as an embedded resource: binary STL by default, also `3mf` (keeps colors), `obj`, `off`, `amf`, `wrl`, `asciistl`, and 2D `svg`/`dxf`/`pdf` |
+| `get_parameters` | Customizer parameters declared in the source |
+| `get_example` | Lists the bundled examples, or returns one |
+
+Every tool takes `parameters`, which overrides top-level variables without
+editing the code. Failures come back as tool errors (`isError: true`) that
+contain the OpenSCAD error lines, so the model can fix its code.
+
+**Connect a client:**
+
+```sh
+# Claude Code
+claude mcp add --transport http openscad https://openscad.example.com/mcp \
+  --header "Authorization: Bearer $OPENSCAD_MCP_TOKEN"
+
+# Local docker run
+claude mcp add --transport http openscad http://localhost:8080/mcp
+```
+
+For other clients (`mcpServers` JSON):
+
+```json
+{ "mcpServers": { "openscad": { "type": "http", "url": "https://openscad.example.com/mcp",
+  "headers": { "Authorization": "Bearer <token>" } } } }
+```
+
+**Protecting it:** set `MCP_AUTH_TOKEN` and `/mcp` then requires
+`Authorization: Bearer <token>`. In Kubernetes, put it in the optional Secret
+the Deployment already references:
+
+```sh
+kubectl -n openscad create secret generic openscad-web-mcp \
+  --from-literal=MCP_AUTH_TOKEN="$(openssl rand -hex 32)"
+kubectl -n openscad rollout restart deploy/openscad-web
+```
+
+Also set `MCP_ALLOWED_HOSTS` in the ConfigMap to your ingress hostname to turn
+on DNS-rebinding protection. `MCP_ENABLED=false` removes the endpoint.
+
+Test it end to end with the official client:
+
+```sh
+pip install "mcp==2.3.0"
+python3 web/tests/mcp_test.py http://localhost:8080/mcp --save /tmp/mcp-out
+```
 
 ## Security notes
 

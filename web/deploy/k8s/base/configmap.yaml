@@ -17,3 +17,8 @@ data:
   # manifold is much faster than cgal for most models.
   OPENSCAD_BACKEND: "manifold"
   LOG_LEVEL: "INFO"
+  # MCP endpoint at /mcp (Streamable HTTP, stateless: any replica can serve it).
+  MCP_ENABLED: "true"
+  # Host header values accepted on /mcp (DNS-rebinding protection). Set to your
+  # ingress host, e.g. "openscad.example.com". Empty disables the check.
+  MCP_ALLOWED_HOSTS: ""

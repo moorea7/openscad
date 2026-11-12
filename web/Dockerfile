@@ -100,7 +100,7 @@ RUN --mount=type=secret,id=extra_ca,required=false \
     && /opt/venv/bin/pip install --no-cache-dir -r /app/requirements.txt
 ENV PATH=/opt/venv/bin:$PATH
 
-COPY web/server/app.py /app/app.py
+COPY web/server/*.py /app/
 COPY web/server/static /app/static
 COPY examples /app/examples
 COPY --from=web-assets /assets/out/three /app/static/vendor/three
